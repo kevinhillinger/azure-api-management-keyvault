@@ -1,0 +1,75 @@
+<!--
+  Create the following named values in APIM:
+  - aad-endpoint
+  - aad-clientid
+  - aad-clientsecret
+  - aad-scope
+
+-->
+<policies>
+  <inbound>
+    <base />
+    <!--
+      Description
+        Create the following named values in APIM:
+        - aad-endpoint
+        - aad-clientid
+        - aad-clientsecret
+        - aad-scope
+
+        vault REST API URL format: {vaultBaseUrl}/certificates/{certificate-name}/{certificate-version}?api-version=7.0
+
+        to get a request to AAD, use https://login.microsoftonline.com/<tenant id>/oauth2/token 
+
+      References
+        get certificate from key vault 
+        https://docs.microsoft.com/en-us/azure/key-vault/authentication-requests-and-responses
+        https://docs.microsoft.com/en-us/rest/api/keyvault/getcertificate/getcertificate
+      
+    -->
+    <!-- to get a request to AAD, use https://login.microsoftonline.com/<tenant id>/oauth2/token -->
+        
+    <send-request ignore-error="true" timeout="20" response-variable-name="bearerToken" mode="new">
+      <set-url>{{aad.endpoint}}</set-url>
+      <set-method>POST</set-method>
+      <set-header name="Content-Type" exists-action="override">
+        <value>application/x-www-form-urlencoded</value>
+      </set-header>
+      <set-body>
+        @{
+            return "client_id={{aad.clientid}}&resource={{aad.scope}}&client_secret={{aad.clientsecret}}&grant_type=client_credentials";
+          }
+      </set-body>
+    </send-request>
+
+    <set-variable name="keyVaultToken" value="@((String)((IResponse)context.Variables["bearerToken"]).Body.As<JObject>()["access_token"])" />
+
+    <send-request ignore-error="true" timeout="20" response-variable-name="keyVaultResponse" mode="new">
+      <set-url>{{keyvault.url}}/certificates/{{keyvault.cert.name}}?api-version=7.0</set-url>
+      <set-method>GET</set-method>
+      <set-header name="Content-Type" exists-action="override">
+        <value>application/json</value>
+      </set-header>
+      <set-header name="Authorization" exists-action="override">
+        <value>@("Bearer " + context.Variables["keyVaultToken"])</value>
+      </set-header>
+    </send-request>
+
+    <set-variable name="clientCertificate" value="@((String)((IResponse)context.Variables["keyVaultResponse"]).Body.As<JObject>()["cer"])" />
+    
+    <!-- name of the header depends on the server -->
+    <set-header name="x-client-cert" exists-action="append">
+      <value>@((String)context.Variables["clientCertificate"])</value>
+    </set-header>
+
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>
