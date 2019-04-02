@@ -29,7 +29,7 @@ az keyvault set-policy --name $keyvault \
 
   ## Inbound Policy Flow
 
-API Management can be a real pain, editing XML documents (invalid XML at that) with embedded C#. Here is the flow:
+API Management can be a tough experience editing XML documents (invalid XML) with embedded C#. It can often be missed is that the XML is "fall through". In other words, treat it as top down execution. Here is the flow for the integration of Azure Key Vault:
 
 1. Get a minted token (bearer) from Azure AD (make sure the scope is properly set for Key Vault)
 2. Get the response and set a variable with the token value
