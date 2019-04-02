@@ -39,3 +39,11 @@ API Management can be a tough experience editing XML documents (invalid XML) wit
 6. Send the client certificate along in the payload to the backend
 
   > Note: Because this is a costly operation (latency rountrip), I'm caching it in this example.
+
+  ## Test API
+  The client certificate test API uses
+
+  ### Setup
+  * Download the client certificate from [https://badssl.com/download/](https://badssl.com/download/)
+  * convert the file to a PFX
+  * set the file

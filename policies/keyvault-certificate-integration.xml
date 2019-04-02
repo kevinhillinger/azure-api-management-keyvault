@@ -29,10 +29,10 @@
     -->
     <!-- to get a request to AAD, use https://login.microsoftonline.com/<tenant id>/oauth2/token -->
     
-    <cache-lookup-value key="cert1" variable-name="cert1" />
+    <cache-lookup-value key="{{keyvault.cert.name}}" variable-name="{{keyvault.cert.name}}" />
 
     <choose>
-      <when condition="@(!context.Variables.ContainsKey("cert1"))">
+      <when condition="@(!context.Variables.ContainsKey("{{keyvault.cert.name}}"))">
         <send-request ignore-error="true" timeout="20" response-variable-name="bearerToken" mode="new">
           <set-url>{{aad.endpoint}}</set-url>
           <set-method>POST</set-method>
@@ -73,15 +73,18 @@
           </set-header>
         </send-request>
 
-        <set-variable name="cert1" value="@((String)((IResponse)context.Variables["keyVaultResponse"]).Body.As<JObject>()["value"])" />
-        <cache-store-value key="cert1" value="@(context.Variables.GetValueOrDefault("cert1", string.Empty))" duration="3600" caching-type="internal" />
+        <set-variable name="{{keyvault.cert.name}}" value="@((String)((IResponse)context.Variables["keyVaultResponse"]).Body.As<JObject>()["value"])" />
+        <cache-store-value key="{{keyvault.cert.name}}" value="@(context.Variables.GetValueOrDefault("{{keyvault.cert.name}}", string.Empty))" duration="3600" caching-type="internal" />
       </when>
     </choose>
 
     <!-- name of the header depends on the server -->
     <set-header name="x-client-cert" exists-action="append">
-      <value>@((string)context.Variables["cert1"])</value>
+      <value>@((string)context.Variables["{{keyvault.cert.name}}"])</value>
     </set-header>
+    
+    <!--  Don't need the APIM subscription key to the backend for this example -->
+    <set-header exists-action="delete" name="Ocp-Apim-Subscription-Key"/>
 
   </inbound>
   <backend>
