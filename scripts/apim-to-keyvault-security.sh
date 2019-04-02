@@ -15,4 +15,3 @@ az keyvault set-policy --name $keyvault \
   --spn $sp_id \
   --certificate-permissions get \
   --secret-permissions get
-  
