@@ -28,38 +28,59 @@
       
     -->
     <!-- to get a request to AAD, use https://login.microsoftonline.com/<tenant id>/oauth2/token -->
-        
-    <send-request ignore-error="true" timeout="20" response-variable-name="bearerToken" mode="new">
-      <set-url>{{aad.endpoint}}</set-url>
-      <set-method>POST</set-method>
-      <set-header name="Content-Type" exists-action="override">
-        <value>application/x-www-form-urlencoded</value>
-      </set-header>
-      <set-body>
-        @{
-            return "client_id={{aad.clientid}}&resource={{aad.scope}}&client_secret={{aad.clientsecret}}&grant_type=client_credentials";
-          }
-      </set-body>
-    </send-request>
-
-    <set-variable name="keyVaultToken" value="@((String)((IResponse)context.Variables["bearerToken"]).Body.As<JObject>()["access_token"])" />
-
-    <send-request ignore-error="true" timeout="20" response-variable-name="keyVaultResponse" mode="new">
-      <set-url>{{keyvault.url}}/certificates/{{keyvault.cert.name}}?api-version=7.0</set-url>
-      <set-method>GET</set-method>
-      <set-header name="Content-Type" exists-action="override">
-        <value>application/json</value>
-      </set-header>
-      <set-header name="Authorization" exists-action="override">
-        <value>@("Bearer " + context.Variables["keyVaultToken"])</value>
-      </set-header>
-    </send-request>
-
-    <set-variable name="clientCertificate" value="@((String)((IResponse)context.Variables["keyVaultResponse"]).Body.As<JObject>()["cer"])" />
     
+    <cache-lookup-value key="cert1" variable-name="cert1" />
+
+    <choose>
+      <when condition="@(!context.Variables.ContainsKey("cert1"))">
+        <send-request ignore-error="true" timeout="20" response-variable-name="bearerToken" mode="new">
+          <set-url>{{aad.endpoint}}</set-url>
+          <set-method>POST</set-method>
+          <set-header name="Content-Type" exists-action="override">
+            <value>application/x-www-form-urlencoded</value>
+          </set-header>
+          <set-body>
+            @{
+                return "client_id={{aad.clientid}}&resource={{aad.scope}}&client_secret={{aad.clientsecret}}&grant_type=client_credentials";
+              }
+          </set-body>
+        </send-request>
+
+        <set-variable name="keyVaultToken" value="@((String)((IResponse)context.Variables["bearerToken"]).Body.As<JObject>()["access_token"])" />
+
+        <send-request ignore-error="true" timeout="20" response-variable-name="keyVaultResponse" mode="new">
+          <set-url>{{keyvault.url}}/certificates/{{keyvault.cert.name}}?api-version=7.0</set-url>
+          <set-method>GET</set-method>
+          <set-header name="Content-Type" exists-action="override">
+            <value>application/json</value>
+          </set-header>
+          <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + context.Variables["keyVaultToken"])</value>
+          </set-header>
+        </send-request>
+
+        <set-variable name="sid" value="@((String)((IResponse)context.Variables["keyVaultResponse"]).Body.As<JObject>()["sid"])" />
+        
+        <!-- get the entire pfx certificate -->
+        <send-request ignore-error="true" timeout="20" response-variable-name="keyVaultResponse" mode="new">
+          <set-url>@(context.Variables["sid"] + "?api-version=7.0")</set-url>
+          <set-method>GET</set-method>
+          <set-header name="Content-Type" exists-action="override">
+            <value>application/json</value>
+          </set-header>
+          <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + context.Variables["keyVaultToken"])</value>
+          </set-header>
+        </send-request>
+
+        <set-variable name="cert1" value="@((String)((IResponse)context.Variables["keyVaultResponse"]).Body.As<JObject>()["value"])" />
+        <cache-store-value key="cert1" value="@(context.Variables.GetValueOrDefault("cert1", string.Empty))" duration="3600" caching-type="internal" />
+      </when>
+    </choose>
+
     <!-- name of the header depends on the server -->
     <set-header name="x-client-cert" exists-action="append">
-      <value>@((String)context.Variables["clientCertificate"])</value>
+      <value>@((string)context.Variables["cert1"])</value>
     </set-header>
 
   </inbound>
