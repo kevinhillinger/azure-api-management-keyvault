@@ -40,10 +40,25 @@ API Management can be a tough experience editing XML documents (invalid XML) wit
 
   > Note: Because this is a costly operation (latency rountrip), I'm caching it in this example.
 
-  ## Test API
-  The client certificate test API uses
+## Test API
+The client certificate test API uses badssl.
 
-  ### Setup
-  * Download the client certificate from [https://badssl.com/download/](https://badssl.com/download/)
-  * convert the file to a PFX
-  * set the file
+### Client Certificate
+* Download the client certificate from [https://badssl.com/download/](https://badssl.com/download/)
+* convert the file to a PFX (while you download)
+* Import the certificate into key vault
+
+```
+rg=apim
+keyvault=$(az keyvault list -g $rg --query '[?name.starts_with(@, `apim`)].name' --output tsv)
+cert_file=./badssl.com-client.pfx
+cert_name=badssl-client
+cert_password=badssl.com
+# download the p12 cert (password is badssl.com)
+
+curl https://badssl.com/certs/badssl.com-client.p12 --output  $cert_file
+cert_password=badssl.com
+
+# import to keyvault
+ az keyvault certificate import --vault-name $keyvault -n $cert_name -f $cert_file --password $cert_password -p "$(az keyvault certificate get-default-policy -o json)"
+```
