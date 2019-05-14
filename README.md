@@ -36,9 +36,9 @@ API Management can be a tough experience editing XML documents (invalid XML) wit
 3. Send a request to Key Vault with Authorization header loaded up with the token
 4. Get the certificate info
 5. Fetch the entire PFX file in base64
-6. Send the client certificate along in the payload to the backend
+6. Send the client certificate along in the payload 
 
-  > Note: Because this is a costly operation (latency rountrip), I'm caching it in this example.
+  > Note: API Management does NOT support ClientCertificates.Add operation. So while it's possible to retrieve this information, as of yet, APIM wouldn't be able to perform mutual TLS client authentication using this methodology.
 
 ## Test API
 The client certificate test API uses badssl.
